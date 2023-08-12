@@ -1,8 +1,7 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize}; // self 必须导入
 
-use std::marker::Copy;
-
 //use near_sdk::store::LookupMap;
+use near_sdk::serde::Serialize;
 use near_sdk::store::UnorderedMap;
 use near_sdk::store::Vector;
 use near_sdk::{env, near_bindgen, require, AccountId, BorshStorageKey, PanicOnDefault};
@@ -12,14 +11,13 @@ use near_sdk::{env, near_bindgen, require, AccountId, BorshStorageKey, PanicOnDe
  * 记录相应活动下的募资总体信息（参与人数，募集的NEAR数量），以及记录参与的用户地址以及投入的数量
  * 业务逻辑（用户参与，添加新的募集活动，活动结束后进行资金领取）
  */
-#[near_bindgen] 
+#[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)] // 实现 borsh 序列化, 实现不可用的 `default` 方法以通过编译
 pub struct Contract {
-    
     //合约账户，用于接收募捐的NEAR
     owner_id: AccountId,
     //最新活动编号
-    num_campagins : u32,
+    num_campagins: u32,
     //K 活动编号，V 募资活动
     campaigns: UnorderedMap<u32, CrowdFunding>,
     //K 活动编号，V 参与人
@@ -48,86 +46,96 @@ enum StorageKey {
 /*
  * 募资活动
  */
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Serialize, Clone)]
+#[serde(crate = "near_sdk::serde")]
 pub struct CrowdFunding {
-    theme: String,  //募捐活动主题
-    pub receiver: AccountId,    //接收募捐的NEAR账户地址
-    funding_goal : u32, //募资目标金额
-    number_funders : u32,   //募资参与人数
-    total_amount : u128, //当前已经募集的金额
+    theme: String,           //募捐活动主题
+    pub receiver: AccountId, //接收募捐的NEAR账户地址
+    funding_goal: u32,       //募资目标金额
+    number_funders: u32,     //募资参与人数
+    total_amount: u128,      //当前已经募集的金额
 }
 
 impl CrowdFunding {
-    pub fn new(theme:String, receiver: AccountId, number_funders:u32, funding_goal:u32) -> CrowdFunding{
+    pub fn new(
+        theme: String,
+        receiver: AccountId,
+        number_funders: u32,
+        funding_goal: u32,
+    ) -> CrowdFunding {
         let total_amount = 0;
         CrowdFunding {
             theme,
-            receiver, 
-            number_funders, 
-            funding_goal, 
-            total_amount
+            receiver,
+            number_funders,
+            funding_goal,
+            total_amount,
         }
     }
 }
 /*
  * 募资参与人信息
  */
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+#[derive(BorshDeserialize, BorshSerialize, Serialize, PanicOnDefault)]
+#[serde(crate = "near_sdk::serde")]
 pub struct Funder {
-    addr : AccountId,
-    amount : u128,
+    addr: AccountId,
+    amount: u128,
 }
 
 impl Funder {
-    pub fn new(addr: AccountId, amount:u128) -> Funder{
-        let total_amount = 0;
-        Self { 
-            addr, 
-            amount, 
-        } 
+    pub fn new(addr: AccountId, amount: u128) -> Funder {
+        let _total_amount = 0;
+        Self { addr, amount }
     }
 }
-
 
 #[near_bindgen]
 impl Contract {
     #[init]
     pub fn init(owner_id: AccountId) -> Self {
         Self {
-                owner_id,
-                num_campagins : 0,
-                campaigns : UnorderedMap::new(StorageKey::Descriptions),
-                funders : UnorderedMap::new(StorageKey::Descriptions),
-            }
+            owner_id,
+            num_campagins: 0,
+            campaigns: UnorderedMap::new(StorageKey::Descriptions),
+            funders: UnorderedMap::new(StorageKey::Descriptions),
+        }
     }
 
     //创建募捐活动，返回募集活动id
-    pub fn newCampaign(&mut self, theme:String, receiver: AccountId, number_funders:u32, funding_goal: u32) -> Option<u32> {
+    pub fn newCampaign(
+        &mut self,
+        theme: String,
+        receiver: AccountId,
+        number_funders: u32,
+        funding_goal: u32,
+    ) -> Option<u32> {
         require!(
             env::predecessor_account_id() == self.owner_id,
             "Only contract owner can call this method."
         );
-        
-        self.num_campagins = self.num_campagins + 1;
+
+        self.num_campagins += 1;
         let crowd_funding = CrowdFunding::new(theme, receiver, number_funders, funding_goal);
         self.campaigns.insert(self.num_campagins, crowd_funding);
         //
-        self.funders.insert(self.num_campagins, Vector::new(StorageKey::Descriptions));
+        self.funders
+            .insert(self.num_campagins, Vector::new(StorageKey::Descriptions));
 
         Some(self.num_campagins)
     }
 
     //用户参与募捐活动, 返回第几位参与者
     #[payable]
-    pub fn bid(&mut self, num_campagins:u32) -> u32 {
-        let opt_crowd_funding= self.campaigns.get_mut(&num_campagins);
+    pub fn bid(&mut self, num_campagins: u32) -> u32 {
+        let opt_crowd_funding = self.campaigns.get_mut(&num_campagins);
 
         //todo 如果活动不存在？？？
-        let crowd_funding:&mut CrowdFunding = opt_crowd_funding.unwrap();
+        let crowd_funding: &mut CrowdFunding = opt_crowd_funding.unwrap();
         //参与人募捐的near数量
         let amount = env::attached_deposit();
-        crowd_funding.total_amount = crowd_funding.total_amount + amount;
-        crowd_funding.number_funders = crowd_funding.number_funders + 1 as u32;
+        crowd_funding.total_amount += amount;
+        crowd_funding.number_funders += 1_u32;
         //
         let opt_funders = self.funders.get_mut(&num_campagins);
         let funders: &mut Vector<Funder> = opt_funders.unwrap();
@@ -139,40 +147,39 @@ impl Contract {
         funders.len()
     }
 
-
     // 获取募捐合约所属人
     pub fn get_contract_owner_id(&self) -> Option<&AccountId> {
         Some(&self.owner_id)
     }
 
     // 获取募捐活动by募捐活动编号
-    pub fn get_crowdFunding_by_num_campagins(&self, num_campagins:u32) -> Option<&CrowdFunding> {
+    pub fn get_crowdFunding_by_num_campagins(&self, num_campagins: u32) -> Option<&CrowdFunding> {
         let crowd_funding = self.campaigns.get(&num_campagins);
-        if crowd_funding.is_none() {
-            None
-        } else {
-            crowd_funding
-        }
+        crowd_funding
     }
 
-    // 获取募捐人by募捐活动编号
-    pub fn get_funders_by_num_campagins(&self, num_campagins:u32) -> Option<&Vector<Funder>> {
+    //获取募捐人by募捐活动编号
+    pub fn get_funders_by_num_campagins(&self, num_campagins: u32) -> Option<Vec<&Funder>> {
         let opt_funders = self.funders.get(&num_campagins);
         if opt_funders.is_none() {
             None
         } else {
-            opt_funders
+            let mut funder_vec = Vec::new();
+            let funders = opt_funders.unwrap();
+            for funder in funders {
+                funder_vec.push(funder);
+            }
+
+            Some(funder_vec)
         }
     }
-
 }
-
 
 #[cfg(test)]
 mod test {
-    use crate::{Contract, Funder};
+    use crate::Contract;
     use near_sdk::test_utils::VMContextBuilder;
-    use near_sdk::{testing_env, AccountId, Balance, ONE_YOCTO};
+    use near_sdk::{testing_env, AccountId, Balance};
 
     //合约账户
     fn contract_owner() -> AccountId {
@@ -221,7 +228,12 @@ mod test {
          * step2 创建2个募捐活动
          */
         //创建第1个募捐活动，目标筹集：100NEAR, 接收账户：campaign_receiver1.near
-        let num_campaign1:Option<u32> = contract.newCampaign(String::from("为涿州水灾募捐活动"), campaign_receiver1(), 0 as u32, 100 as u32);
+        let num_campaign1: Option<u32> = contract.newCampaign(
+            String::from("涿州水灾募捐活动"),
+            campaign_receiver1(),
+            0_u32,
+            100_u32,
+        );
         //
         assert_eq!(num_campaign1.unwrap(), 1, "第1个募捐活动编号错误！");
 
@@ -230,12 +242,20 @@ mod test {
             assert!(false, "第1个募捐活动创建失败！")
         } else {
             let crowd_funding1 = opt_crowd_funding1.unwrap();
-            assert_eq!(crowd_funding1.receiver.as_str(), "campaign_receiver1.near", "第1个募捐活动，接收账户错误！");
-            
+            assert_eq!(
+                crowd_funding1.receiver.as_str(),
+                "campaign_receiver1.near",
+                "第1个募捐活动，接收账户错误！"
+            );
         }
-        
+
         //创建第2个募捐活动，目标筹集：500NEAR, 接收账户：campaign_receiver2.near
-        let num_campaign2:Option<u32> = contract.newCampaign(String::from("为流浪动物救助募捐活动"), campaign_receiver2(), 0 as u32, 500 as u32);
+        let num_campaign2: Option<u32> = contract.newCampaign(
+            String::from("流浪动物救助募捐活动"),
+            campaign_receiver2(),
+            0_u32,
+            500_u32,
+        );
         //
         assert_eq!(num_campaign2.unwrap(), 2, "第2个募捐活动编号错误！");
 
@@ -244,24 +264,29 @@ mod test {
             assert!(false, "第2个募捐活动创建失败！")
         } else {
             let crowd_funding2 = opt_crowd_funding2.unwrap();
-            assert_eq!(crowd_funding2.receiver.as_str(), "campaign_receiver2.near", "第2个募捐活动，接收账户错误！");
-            
+            assert_eq!(
+                crowd_funding2.receiver.as_str(),
+                "campaign_receiver2.near",
+                "第2个募捐活动，接收账户错误！"
+            );
         }
 
         /*
-         * step3 2个用户参与第1个募捐活动
+         * step3 2个用户参与第1个募捐活动，
          */
         let funder_number = contract.bid(num_campaign1.unwrap());
-        assert_eq!(funder_number, 1, "用户参与募捐活动失败！");
+        assert_eq!(funder_number, 1, "用户参与募捐活动1失败！");
         if funder_number > 0 {
-            let funders = contract.get_funders_by_num_campagins(num_campaign1.unwrap()).unwrap();
+            let funders = contract
+                .get_funders_by_num_campagins(num_campaign1.unwrap())
+                .unwrap();
             assert_eq!(funders.len(), 1);
             let v_iter = funders.iter();
             for val in v_iter {
                 assert_eq!(val.addr, funder_addr1());
             }
         }
-        //模拟第二个用户
+        //模拟第2个用户
         let context1 = VMContextBuilder::new()
             .predecessor_account_id(contract_owner())
             .signer_account_id(funder_addr2())
@@ -270,7 +295,18 @@ mod test {
         testing_env!(context1);
         //
         let funder_number = contract.bid(num_campaign1.unwrap());
-        assert_eq!(funder_number, 2, "用户参与募捐活动失败！");
+        assert_eq!(funder_number, 2, "用户参与募捐活动1失败！");
+
+        //模拟第3个用户
+        let context2 = VMContextBuilder::new()
+            .predecessor_account_id(contract_owner())
+            .signer_account_id(funder_addr3())
+            .attached_deposit(50)
+            .build();
+        testing_env!(context2);
+        //
+        let funder_number = contract.bid(num_campaign2.unwrap());
+        assert_eq!(funder_number, 1, "用户参与募捐活动2失败！");
 
         /*
          * step4 查看所有募捐活动及参与人
@@ -282,15 +318,16 @@ mod test {
         for campaign in campaigns_iter {
             println!("【{}】合约接收账户：{}, 目标募集数量：{}个near, 参与人数：{}人, 当前已筹集：{}个near.", campaign.1.theme, campaign.1.receiver, campaign.1.funding_goal, campaign.1.number_funders, campaign.1.total_amount);
             let opt_funders = contract.funders.get(campaign.0);
-            if !opt_funders.is_none() {
+            if opt_funders.is_some() {
                 let funders = opt_funders.unwrap().iter();
                 for funder in funders {
-                    println!("     --->【募捐人】账户：{}, 捐赠：{}个near.", funder.addr, funder.amount);
+                    println!(
+                        "     --->【募捐人】账户：{}, 捐赠：{}个near.",
+                        funder.addr, funder.amount
+                    );
                 }
             }
             println!()
         }
-
     }
-
 }
