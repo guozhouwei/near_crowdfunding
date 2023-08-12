@@ -16,7 +16,14 @@ https://github.com/guozhouwei/near_crowdfunding
 ![avatar](https://github.com/guozhouwei/near_crowdfunding/blob/master/images/%E5%86%B3%E7%AD%96%E6%B5%81%E7%A8%8B%E5%9B%BE.png)
 
 ## 部署和交互
-假设你注册了两个测试网账户 `alice111.testnet` 和 `code111.testnet`, 一个用于作为主账户, 另一个用于作为合约账户, 私钥保存在 legacy keychain 中
+假设你注册了4个测试网账户:
+```bash
+1. 主账户（同合约部署签名账户）owner.near
+2. 合约账户 contract.near
+3. 募捐人账户1 a.near
+4. 募捐人账户2 b.near
+```
+以上账户私钥保存在 legacy keychain 中
 
 1. 部署并初始化合约
     ```shell
