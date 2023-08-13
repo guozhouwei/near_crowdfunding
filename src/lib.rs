@@ -1,9 +1,10 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize}; // self 必须导入
 
-//use near_sdk::store::LookupMap;
 use near_sdk::serde::Serialize;
 use near_sdk::store::UnorderedMap;
 use near_sdk::store::Vector;
+use near_sdk::CryptoHash;
+
 use near_sdk::{env, near_bindgen, require, AccountId, BorshStorageKey, PanicOnDefault};
 
 /*
@@ -29,11 +30,13 @@ pub struct Contract {
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
     // 以 0u8 的方式 borsh 序列化
-    Descriptions,
-
-    // 以 1u8 的方式 borsh 序列化, 该值在本合约中没有被使用, 仅用于教学目的
+    campaigns_storagekey,
+    funders_storagekey,
+    // 以 1u8 的方式 borsh 序列化
     #[allow(unused)]
-    OtherKey,
+    DynamicKey {
+        num_campagins_storagekey: u32,
+    }
 }
 
 // 使用 Default 来初始化合约
@@ -97,8 +100,8 @@ impl Contract {
         Self {
             owner_id,
             num_campagins: 0,
-            campaigns: UnorderedMap::new(StorageKey::Descriptions),
-            funders: UnorderedMap::new(StorageKey::Descriptions),
+            campaigns: UnorderedMap::new(StorageKey::campaigns_storagekey),
+            funders: UnorderedMap::new(StorageKey::funders_storagekey),
         }
     }
 
@@ -120,12 +123,14 @@ impl Contract {
         self.campaigns.insert(self.num_campagins, crowd_funding);
         //
         self.funders
-            .insert(self.num_campagins, Vector::new(StorageKey::Descriptions));
+            .insert(self.num_campagins, Vector::new(StorageKey::DynamicKey { 
+                                                                            num_campagins_storagekey : self.num_campagins
+                                                                        }));
 
         Some(self.num_campagins)
     }
 
-    //用户参与募捐活动, 返回第几位参与者
+    //用户参与募捐活动, 返回此募捐活动的第几位参与者
     #[payable]
     pub fn bid(&mut self, num_campagins: u32) -> u32 {
         let opt_crowd_funding = self.campaigns.get_mut(&num_campagins);
@@ -153,9 +158,13 @@ impl Contract {
     }
 
     // 获取募捐活动by募捐活动编号
-    pub fn get_crowdFunding_by_num_campagins(&self, num_campagins: u32) -> Option<&CrowdFunding> {
-        let crowd_funding = self.campaigns.get(&num_campagins);
-        crowd_funding
+    #[handle_result]
+    pub fn get_crowdFunding_by_num_campagins(&self, num_campagins: u32) -> Result<CrowdFunding, String> {
+        if let Some(crowd_funding) = self.campaigns.get(&num_campagins) {
+            Ok(crowd_funding.clone())
+        } else {
+            Err("这个议题不存在".to_string())
+        }
     }
 
     //获取募捐人by募捐活动编号
@@ -238,7 +247,7 @@ mod test {
         assert_eq!(num_campaign1.unwrap(), 1, "第1个募捐活动编号错误！");
 
         let opt_crowd_funding1 = contract.get_crowdFunding_by_num_campagins(num_campaign1.unwrap());
-        if opt_crowd_funding1.is_none() {
+        if opt_crowd_funding1.is_err() {
             assert!(false, "第1个募捐活动创建失败！")
         } else {
             let crowd_funding1 = opt_crowd_funding1.unwrap();
@@ -260,7 +269,7 @@ mod test {
         assert_eq!(num_campaign2.unwrap(), 2, "第2个募捐活动编号错误！");
 
         let opt_crowd_funding2 = contract.get_crowdFunding_by_num_campagins(num_campaign2.unwrap());
-        if opt_crowd_funding2.is_none() {
+        if opt_crowd_funding2.is_err() {
             assert!(false, "第2个募捐活动创建失败！")
         } else {
             let crowd_funding2 = opt_crowd_funding2.unwrap();
