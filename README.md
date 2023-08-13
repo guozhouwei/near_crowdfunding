@@ -1,6 +1,6 @@
 # 去中心化募捐平台
 ## 背景
-针对社会上急需帮助的群体性事件，如：涿州水灾，流浪动物救助，留守儿童失学 等问题，又因为如红十字会等募捐机构不公开账目，存在侵吞募捐款的可能，现基于区块链去中心化的能力，真正做到公开透明的原则搭建此去中心化募捐平台，发布募捐活动，募集NEAR，为救助对象提供帮助；
+针对社会上急需帮助的群体性事件，如：涿州水灾，流浪动物救助，留守儿童失学 等问题，又因为xxx等募捐机构不公开账目，存在侵吞募捐款的可能，现基于区块链去中心化的能力，真正做到公开透明的原则搭建此去中心化募捐平台，发布募捐活动，募集NEAR，为救助对象提供帮助；
 ## 平台主要能力
 ```shell
 1、发布募捐活动，募集near币
@@ -74,14 +74,14 @@ near account import-account using-seed-phrase "${YOUR_SEED_PHRASE}" --seed-phras
 4. 调用 bid 方法, 参与募捐活动
     ```shell
     参与募捐活动账户：zhouzhou_near.testnet
-    发起转账 from： zhouzhou_near.testnet to ：contract1234501.testnet ，NEAR 5.5, 
-    near contract call-function as-transaction contract1234501.testnet bid json-args '{"num_campagins":1}' prepaid-gas '100.000 TeraGas' attached-deposit '5.5 NEAR' sign-as owner123.testnet network-config testnet sign-with-keychain send
-    合约浏览器：https://explorer.testnet.near.org/transactions/9bTyrzwWsojcXo2noGqM35cYMY2vhXDCXNm6LQph5V3x
+    发起转账 from： zhouzhou_near.testnet to ：contract1234501.testnet ，NEAR 88, 
+    near contract call-function as-transaction contract1234501.testnet bid json-args '{"num_campagins":1}' prepaid-gas '100.000 TeraGas' attached-deposit '88 NEAR' sign-as zhouzhou_near.testnet network-config testnet sign-with-keychain send
+    合约浏览器：https://explorer.testnet.near.org/transactions/F11L4erVatpe1JnKUk3GaXMrxN1aJEUvXKh3KaEx2h4g
     ```
 
 5. 调用 get_funders_by_num_campagins 方法, 查看活动募捐人列表
     ```shell
     near contract call-function as-transaction contract1234501.testnet get_funders_by_num_campagins json-args '{"num_campagins":1}' prepaid-gas '100.000 TeraGas' attached-deposit '0 NEAR' sign-as owner123.testnet network-config testnet sign-with-keychain send
-    合约浏览器：https://explorer.testnet.near.org/transactions/4r2jTJ9oRBNZpp38oNWncKk2V3huuBzuopKBFdCCSttg
+    合约浏览器：https://explorer.testnet.near.org/transactions/7rcGezoSa1cxqB7uMzofok9iynxeJ1K2ThLCw7VoG2fh
     ```
 
