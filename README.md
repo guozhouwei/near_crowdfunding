@@ -80,8 +80,8 @@ near account import-account using-seed-phrase "${YOUR_SEED_PHRASE}" --seed-phras
     ```
 
 5. 调用 get_funders_by_num_campagins 方法, 查看活动募捐人列表
-    ```shell
+    
     near contract call-function as-transaction contract1234501.testnet get_funders_by_num_campagins json-args '{"num_campagins":1}' prepaid-gas '100.000 TeraGas' attached-deposit '0 NEAR' sign-as owner123.testnet network-config testnet sign-with-keychain send
     合约浏览器：https://explorer.testnet.near.org/transactions/7rcGezoSa1cxqB7uMzofok9iynxeJ1K2ThLCw7VoG2fh
-    ```
+    
 
