@@ -55,6 +55,7 @@ near account import-account using-seed-phrase "${YOUR_SEED_PHRASE}" --seed-phras
 ### 合约交互
 1. 部署并初始化合约
     ```shell
+    合约账户：contract1234501.testnet
     near contract deploy contract1234501.testnet use-file ./res/contract.wasm with-init-call init json-args '{"owner_id":"owner123.testnet"}' prepaid-gas '100.000 TeraGas' attached-deposit '0 NEAR' network-config testnet sign-with-keychain send
     ```
     合约浏览器：https://explorer.testnet.near.org/transactions/FFAB7bzLQsyyGbUn5XMZTLWN4rvbJA1npXHjuuzPmj6H
