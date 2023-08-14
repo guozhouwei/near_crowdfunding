@@ -87,7 +87,7 @@ near account import-account using-seed-phrase "${YOUR_SEED_PHRASE}" --seed-phras
     ```
     合约浏览器：https://explorer.testnet.near.org/transactions/7rcGezoSa1cxqB7uMzofok9iynxeJ1K2ThLCw7VoG2fh
 
-
-     
+#### 查看合约所有调用请查看：
+     https://testnet.nearblocks.io/zh-cn/address/contract1234501.testnet
     
 
