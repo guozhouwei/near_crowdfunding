@@ -163,7 +163,7 @@ impl Contract {
         if let Some(crowd_funding) = self.campaigns.get(&num_campagins) {
             Ok(crowd_funding.clone())
         } else {
-            Err("这个议题不存在".to_string())
+            Err("募捐活动不存在".to_string())
         }
     }
 
